@@ -1,0 +1,791 @@
+--------m-2F4300-----------------------------
+INT 2F - EXTENDED MEMORY SPECIFICATION (XMS) v2+ - INSTALLATION CHECK
+	AX = 4300h
+Return: AL = 80h XMS driver installed
+	AL <> 80h no driver
+Notes:	XMS gives access to extended memory and noncontiguous/nonEMS memory
+	  above 640K
+	this installation check DOES NOT follow the format used by other
+	  software
+SeeAlso: AX=4310h
+Index:	installation check;XMS version 2+
+--------m-2F4308-----------------------------
+INT 2F U - HIMEM.SYS v2.77+ - GET A20 HANDLER NUMBER
+	AX = 4308h
+Return: AL = 43h if supported
+	    BL = A20 handler number (value of /MACHINE:nn switch)
+	    BH = AT A20 switch time (00h medium, 01h fast, 02h slow)
+Note:	if the A20 handler number returned in BL is 00h, an external handler
+	  is being used (see AX=4330h)
+SeeAlso: AX=4309h,AX=4330h
+--------m-2F4309-----------------------------
+INT 2F U - HIMEM.SYS v3.09+ - GET XMS HANDLE TABLE
+	AX = 4309h
+Return: AL = 43h if function supported
+	    ES:BX -> XMS handle table (see #2027)
+Note:	HIMEM.SYS v3.09 is part of MS-DOS 6.0.
+SeeAlso: AX=4308h
+
+Format of XMS handle table:
+Offset	Size	Description	(Table 2027)
+ 00h	BYTE	??? (01h in HIMEM.SYS v3.09)
+ 01h	BYTE	size of one handle descriptor
+ 02h	WORD	number of handles (default = 20h)
+ 04h	DWORD	pointer to XMS handle array (see #2028)
+SeeAlso: #2057
+
+Format of XMS handle descriptor [array]:
+Offset	Size	Description	(Table 2028)
+ 00h	BYTE	flag
+		01h=free, 02h=used, 04h=in pool but not associated with any EMB
+ 01h	BYTE	lock count (00h=unlocked)
+ 02h	DWORD	address of XMS block in KB (shift left by 10 for abs. address)
+ 06h	DWORD	size of XMS block in KB
+--------m-2F4310-----------------------------
+INT 2F - EXTENDED MEMORY SPECIFICATION (XMS) v2+ - GET DRIVER ADDRESS
+	AX = 4310h
+Return: ES:BX -> driver entry point (see #2029,#2030,#2033,#2040,#2049,#2054)
+Notes:	HIMEM.SYS v2.77 chains to previous handler if AH is not 00h or 10h
+	HIMEM.SYS requires at least 256 bytes free stack space when calling
+	  the driver entry point
+SeeAlso: AX=4300h,AX=4310h"Cloaking",AX=4310h"Netroom",AX=4310h"XMZ"
+
+Format of XMS driver entry point:
+Offset	Size	Description	(Table 2029)
+ 00h  5 BYTEs	jump to actual handler
+		either short jump (EBh XXh) followed by three NOPs or
+		  far jump (EAh XXXX:XXXX) to a program which has hooked itself
+		  into the XMS driver chain
+Note:	to hook into the XMS driver chain, a program should follow the chain of
+	  far jumps until it reaches the short jump of the driver at the end
+	  of the chain; this short jump is to be replaced with a far jump to
+	  the new handler's entry point, which should contain a short jump
+	  followed by three NOPs.  The new handler must return to the address
+	  pointed at by the short jump which was overwritten.  Using this
+	  method, the new handler becomes the first to see every XMS request.
+
+(Table 2030)
+Call the XMS driver "Get XMS version number" function with:
+	AH = 00h
+Return: AX = XMS version (in BCD, AH=major, AL=minor)
+	BX = internal revision number (in BCD for HIMEM.SYS)
+	DX = High Memory Area (HMA) state
+	    0001h HMA (1M to 1M + 64K) exists
+	    0000h HMA does not exist
+SeeAlso: #2031,#2032,#2037,#2038,#2044
+
+(Table 2031)
+Call the XMS driver "Request High Memory Area" function with:
+	AH = 01h
+	DX = memory in bytes (for TSR or device drivers)
+	    FFFFh if application program
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = error code (80h,81h,90h,91h,92h) (see #2055)
+Note:	HIMEM.SYS will fail function 01h with error code 91h if AL=40h and
+	  DX=KB free extended memory returned by last call of function 08h
+SeeAlso: #2032,#2064
+
+(Table 2032)
+Call the XMS driver "Release High Memory Area" function with:
+	AH = 02h
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = error code (80h,81h,90h,93h) (see #2055)
+SeeAlso: #2031
+
+(Table 2033)
+Call the XMS driver "Global enable A20, for using the HMA" function with:
+	AH = 03h
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = error code (80h,81h,82h) (see #2055)
+SeeAlso: #2034,#2035,MSR 00001000h
+
+(Table 2034)
+Call the XMS driver "Global disable A20" function with:
+	AH = 04h
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = error code (80h,81h,82h,94h) (see #2055)
+SeeAlso: #2033,#2036,MSR 00001000h
+
+(Table 2035)
+Call the XMS driver "Local enable A20" function with:
+	AH = 05h
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = error code (80h,81h,82h) (see #2055)
+Note:	this function is used for direct access to extended memory
+SeeAlso: #2033,#2036
+
+(Table 2036)
+Call the XMS driver "Local disable A20" function with:
+	AH = 06h
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = error code (80h,81h,82h,94h) (see #2055)
+SeeAlso: #2034,#2035
+
+(Table 2037)
+Call the XMS driver "Query A20 state" function with:
+	AH = 07h
+Return: AX = status
+	    0001h enabled
+	    0000h disabled
+		BL = error code (00h,80h,81h) (see #2055)
+SeeAlso: #2030,#2038
+
+(Table 2038)
+Call the XMS driver "Query free extended memory" function with:
+	AH = 08h
+	BL = 00h (some implementations leave BL unchanged on success)
+Return: AX = size of largest extended memory block in KB
+	DX = total extended memory in KB
+	BL = error code (00h,80h,81h,A0h) (see #2055)
+Note:	this function does not include the HMA in the returned memory sizes
+SeeAlso: #2030,#2037,#2039,#2051
+
+(Table 2039)
+Call the XMS driver "Allocate extended memory block" function with:
+	AH = 09h
+	DX = Kbytes needed
+Return: AX = status
+	    0001h success
+		DX = handle for memory block
+	    0000h failure
+		BL = error code (80h,81h,A0h) (see #2055)
+SeeAlso: #2038,#2041,#2044,#2045,#2046,#2052
+
+(Table 2040)
+Call the XMS driver "Free extended memory block" function with:
+	AH = 0Ah
+	DX = handle of block to free
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = error code (80h,81h,A2h,ABh) (see #2055)
+SeeAlso: #2039,#2052
+
+(Table 2041)
+Call the XMS driver "Move extended memory block" function with:
+	AH = 0Bh
+	DS:SI -> EMM structure (see #2056)
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = error code (80h-82h,A3h-A9h) (see #2055)
+Note:	if either handle in the EMM structure is 0000h, the corresponding
+	  offset is considered to be an absolute segment:offset address in
+	  directly addressable memory
+SeeAlso: #2039,#2042
+
+(Table 2042)
+Call the XMS driver "Lock extended memory block" function with:
+	AH = 0Ch
+	DX = handle of block to lock
+Return: AX = status
+	    0001h success
+		DX:BX = 32-bit physical address of locked block
+	    0000h failure
+		BL = error code (80h,81h,A2h,ACh,ADh) (see #2055)
+Note:	MS Windows 3.x rejects this function for handles allocated after
+	  Windows started
+SeeAlso: #2039,#2041,#2043
+
+(Table 2043)
+Call the XMS driver "Unlock extended memory block" function with:
+	AH = 0Dh
+	DX = handle of block to unlock
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = error code (80h,81h,A2h,AAh) (see #2055)
+SeeAlso: #2042
+
+(Table 2044)
+Call the XMS driver "Get handle information" function with:
+	AH = 0Eh
+	DX = handle for which to get info
+Return: AX = status
+	    0001h success
+		BH = block's lock count
+		BL = number of free handles left
+		DX = block size in KB
+	    0000h failure
+		BL = error code (80h,81h,A2h) (see #2055)
+BUG:	MS Windows 3.10 acts as though unallocated handles are in use
+Note:	MS Windows 3.00 has problems with this call
+SeeAlso: #2030,#2039,#2053
+
+(Table 2045)
+Call the XMS driver "Reallocate extended memory block" function with:
+	AH = 0Fh
+	DX = handle of block
+	BX = new size of block in KB
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = error code (80h,81h,A0h-A2h,ABh) (see #2055)
+SeeAlso: #2039,#2048
+
+(Table 2046)
+Call the XMS driver "Request upper memory block" function with:
+	AH = 10h
+	DX = size of block in paragraphs
+Return: AX = status
+	    0001h success
+		BX = segment address of UMB
+		DX = actual size of block
+	    0000h failure
+		BL = error code (80h,B0h,B1h) (see #2055)
+		DX = largest available block
+Notes:	Upper Memory consists of non-EMS memory between 640K and 1024K
+	the XMS driver need not implement functions 10h through 12h to be
+	  considered compliant with the standard
+	under DOS 5+, if CONFIG.SYS contains the line DOS=UMB, then no upper
+	  memory blocks will be available for allocation because all blocks
+	  have been grabbed by MS-DOS while booting
+SeeAlso: #2039,#2047,#2065,INT 21/AH=58h"UMB"
+
+(Table 2047)
+Call the XMS driver "Release upper memory block" function with:
+	AH = 11h
+	DX = segment address of UMB to release
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = error code (80h,B2h) (see #2055)
+Note:	the XMS driver need not implement functions 10h through 12h to be
+	  considered compliant with the standard
+SeeAlso: #2040,#2046,#2048
+
+(Table 2048)
+Call the XMS v3.0+ driver "Reallocate upper memory block" function with:
+	AH = 12h
+	DX = segment address of UMB to resize
+	BX = new size of block in paragraphs
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = error code (80h,B0h,B2h) (see #2055)
+		DX = maximum available size (RM386)
+Note:	the XMS driver need not implement functions 10h through 12h to be
+	  considered compliant with the standard
+SeeAlso: #2045,#2046,#2047,#2063
+
+(Table 2049)
+Call the QEMM v5.11 "???" function with:
+	AH = 34h  (QEMM 5.11 only, undocumented)
+	???
+Return: ???
+SeeAlso: #2050
+
+(Table 2050)
+Call the QEMM v5.11 "???" function with:
+	AH = 44h  (QEMM 5.11 only, undocumented)
+	???
+Return: ???
+SeeAlso: #2049,#2063
+
+(Table 2051)
+Call the XMS v3.0 driver "Query free extended memory" function with:
+	AH = 88h
+Return: EAX = largest block of extended memory, in KB
+	BL = status (00h,80h,81h,A0h) (see #2055)
+	ECX = physical address of highest byte of memory
+	    (valid even on error codes 81h and A0h)
+	EDX = total Kbytes of extended memory (0 if status A0h)
+BUG:	HIMEM v3.03-3.07 crash on an 80286 machine if any of the 8Xh functions
+	  are called
+SeeAlso: #2038,#2052
+
+(Table 2052)
+Call the XMS v3.0 driver "Allocate any extended memory" function with:
+	AH = 89h
+	EDX = Kbytes needed
+Return: AX = status
+	    0001h success
+		DX = handle for allocated block (free with AH=0Ah) (see #2040)
+	    0000h failure
+		BL = status (80h,81h,A0h,A1h,A2h) (see #2055)
+SeeAlso: #2039,#2051
+
+(Table 2053)
+Call the XMS v3.0 driver "Get extended EMB handle information" function with:
+	AH = 8Eh
+	DX = handle
+Return: AX = status
+	    0001h success
+		BH = block's lock count
+		CX = number of free handles left
+		EDX = block size in KB
+	    0000h failure
+		BL = status (80h,81h,A2h) (see #2055)
+BUG:	MS-DOS 6.0 HIMEM.SYS leaves CX unchanged
+SeeAlso: #2044,#2052,#2054
+
+(Table 2054)
+Call the XMS v3.0 driver "Reallocate any extended memory block" function with:
+	AH = 8Fh
+	DX = unlocked memory block handle
+	EBX = new size in KB
+Return: AX = status
+	    0001h success
+	    0000h failure
+		BL = status (80h,81h,A0h-A2h,ABh) (see #2055)
+BUG:	HIMEM v3.03-3.07 crash on an 80286 machine if any of the 8Xh functions
+	  are called
+SeeAlso: #2045,#2053
+
+(Table 2055)
+Values for XMS error code returned in BL:
+ 00h	successful
+ 80h	function not implemented
+ 81h	Vdisk was detected
+ 82h	an A20 error occurred
+ 8Eh	a general driver error
+ 8Fh	unrecoverable driver error
+ 90h	HMA does not exist or is not managed by XMS provider
+ 91h	HMA is already in use
+ 92h	DX is less than the /HMAMIN= parameter
+ 93h	HMA is not allocated
+ 94h	A20 line still enabled
+ A0h	all extended memory is allocated
+ A1h	all available extended memory handles are allocated
+ A2h	invalid handle
+ A3h	source handle is invalid
+ A4h	source offset is invalid
+ A5h	destination handle is invalid
+ A6h	destination offset is invalid
+ A7h	length is invalid
+ A8h	move has an invalid overlap
+ A9h	parity error occurred
+ AAh	block is not locked
+ ABh	block is locked
+ ACh	block lock count overflowed
+ ADh	lock failed
+ B0h	only a smaller UMB is available
+ B1h	no UMB's are available
+ B2h	UMB segment number is invalid
+
+Format of EMM structure:
+Offset	Size	Description	(Table 2056)
+ 00h	DWORD	number of bytes to move (must be even)
+ 04h	WORD	source handle
+ 06h	DWORD	offset into source block
+ 0Ah	WORD	destination handle
+ 0Ch	DWORD	offset into destination block
+Notes:	if source and destination overlap, only forward moves (source base
+	  less than destination base) are guaranteed to work properly
+	if either handle is zero, the corresponding offset is interpreted
+	  as a real-mode address referring to memory directly addressable
+	  by the processor
+
+Format of XMS handle info [array]:
+Offset	Size	Description	(Table 2057)
+ 00h	BYTE	handle
+ 01h	BYTE	lock count
+ 02h	DWORD	handle size
+ 06h	DWORD	handle physical address (only valid if lock count nonzero)
+SeeAlso: #2027
+--------m-2F4320-----------------------------
+INT 2F U - HIMEM.SYS - Mach 20 SUPPORT
+	AX = 4320h
+	???
+Return: ???
+--------m-2F4330-----------------------------
+INT 2F CU - HIMEM.SYS v2.77+ - GET EXTERNAL A20 HANDLER ADDRESS
+	AX = 4330h
+Return: AL = 80h if external A20 handler provided
+	    ES:BX -> external A20 handler (see #2070)
+	    CL = A20 detection support
+		00h handler is unable to report A20 state
+		01h handler supports function 0002h to report A20 state
+Note:	HIMEM.SYS calls this function to allow an external program to provide
+	  an A20 handler (i.e. to support a machine not supported by HIMEM
+	  itself)
+SeeAlso: AX=4308h,AX=4310h
+
+(Table 2070)
+Call parameters for external A20 handler are:
+	AX = function
+	    0000h disable A20
+	    0001h enable A20
+	    0002h get A20 state
+Return: AX = status (functions 0000h and 0001h)
+	    0000h failure
+	    0001h successful
+	AX = A20 state (function 0002h)
+	    0000h disabled
+	    0001h enabled
+Note:	HIMEM.SYS only calls function 0002h if the returned CL indicated that
+	  the handler supports the call
+--------E-2F43E0BX0000-----------------------
+INT 2F - DOS Protected Mode Services (DPMS) v1.0 - INSTALLATION CHECK
+	AX = 43E0h
+	BX = 0000h
+	CX = 4450h ('DP')
+	DX = 4D53h ('MS')
+Return: AX = 0000h if installed
+	    CF clear
+	    ES:DI -> server structure (see #2071)
+	    ES:BX -> registration structure (pre-NWDOS 7 beta spec) (see #2073)
+Note:	the DPMS 1.0 server included with the original release of Novell DOS
+	  7.0 supports both the beta and 1.0 specification, setting ES:BX even
+	  if CX and DX are not as specified on entry (since the beta
+	  specification did not use those registers).  However, the DPMS 1.1
+	  server included with the March 1994 update does not support the beta
+	  specification
+SeeAlso: AX=43E1h,AX=43E2h,AX=43E3h,INT 2F/AX=1687h
+Index:	signature strings;DPMS
+
+Format of DPMS 1.0 server structure:
+Offset	Size	Description	(Table 2071)
+ 00h  4 BYTEs	signature string "DPMS"
+ 04h  2 BYTEs	DPMS version (major,minor)
+ 06h  8 BYTEs	blank-padded server OEM name
+ 0Eh  2 BYTEs	OEM server version (major,minor)
+ 10h	WORD	DPMS flags (see #2072)
+ 12h	BYTE	CPU type
+		(02h = 286, 03h = 386 or higher, higher values allowed)
+
+Bitfields for DPMS flags:
+Bit(s)	Description	(Table 2072)
+ 0	fast processor reset available (286 only)
+ 1	DPMS server is enabled
+ 2	memory is remapped
+ 3-15	reserved (undefined)
+
+Format of beta DPMS registration structure:
+Offset	Size	Description	(Table 2073)
+ 00h	DWORD	real-mode API entry point (see #2075)
+ 04h	DWORD	16-bit protected-mode API entry point (see #2075)
+ 08h  8 BYTEs	reserved (0)
+ 10h  8 BYTEs	blank-padded server OEM name
+ 18h	WORD	flags
+		bit 0: fast processor reset available (286 only)
+		bits 1-15 reserved (undefined)
+ 1Ah  2 BYTEs	DPMS version (major,minor)
+ 1Ch	BYTE	CPU type (02h = 286, 03h = 386 or higher)
+--------m-2F43E1-----------------------------
+INT 2F - DOS Protected Mode Services (DPMS) v1.0 - REGISTER CLIENT
+	AX = 43E1h
+	CX = required protected-mode stack size in bytes
+	ES:DI -> DPMS client interface structure (see #2074)
+Return: AX = 0000h if supported
+	   CF clear
+	   ES:DI buffer filled with API entry point code from offset 0Ah
+Note:	the client is allowed to copy the returned API code to any location in
+	  memory, and need not keep the three code fields together
+SeeAlso: AX=43E0h,AX=43E2h,AX=43E3h
+
+Format of DPMS client interface structure:
+Offset	Size	Description	(Table 2074)
+ 00h	WORD	0000h (structure version / flags)
+ 02h  8 BYTEs	blank-padded client name
+ 0Ah  7 BYTEs	real/virtual-86 mode API code (see #2075)
+ 11h	BYTE	space for return instruction
+		set to C3h for near return, CBh for far return
+ 12h  7 BYTEs	16-bit protected-mode API code (see #2075)
+ 19h	BYTE	space for return instruction
+		set to C3h for near return, CBh for far return
+ 1Ah  9 BYTEs	32-bit protected-mode API code (see #2075)
+ 23h	BYTE	space for return instruction
+		set to C3h for near return, CBh for far return
+Note:	the DPMS server fills the return opcode bytes with zeros and DPMS
+	  requests will thus crash the system unless the application
+	  explicitly sets them (some early versions set them to C3h by
+	  default, but one should not rely on that)
+
+(Table 2075)
+Call DPMS entry point with:
+	AX = 0000h unregister client from server
+ ---control transfer functions---
+	AX = 0100h call protected-mode procedure
+		CX = number of words of stack to copy
+		ES:(E)DI -> callup/down register structure (see #2077)
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0101h call real-mode procedure (RETF return)
+		CX = number of words of stack to copy
+		ES:(E)DI -> callup/down register structure (see #2077)
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0102h call real-mode procedure (IRET return)
+		CX = number of words of stack to copy
+		ES:(E)DI -> callup/down register structure (see #2077)
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0103h call real-mode interrupt handler
+		BL = interrupt number
+		CX = number of words of stack to copy
+		ES:(E)DI -> callup/down register structure (see #2077)
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0104h register default protected mode procedure
+		ES:(E)DI -> default register structure (see #2078)
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0105h register default real-mode procedure (RETF return)
+		ES:(E)DI -> default register structure (see #2078)
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+		Note:	the procedure will be called from 16-bit prot. mode
+	AX = 0106h register default real-mode procedure (IRET return)
+		ES:(E)DI -> default register structure (see #2078)
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+		Note:	the procedure will be called from 16-bit prot. mode
+	AX = 0107h register default real-mode interrupt handler
+		BL = interrupt number
+		ES:(E)DI -> default register structure (see #2078)
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+		Note:	the handler will be called from 16-bit protected mode
+	AX = 0108h register default real-mode procedure (RETF return)
+		ES:(E)DI -> default register structure (see #2078)
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+		Note:	the procedure will be called from 32-bit prot. mode
+	AX = 0109h register default real-mode procedure (IRET return)
+		ES:(E)DI -> default register structure (see #2078)
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+		Note:	the procedure will be called from 32-bit prot. mode
+	AX = 010Ah register default real-mode interrupt handler
+		BL = interrupt number
+		ES:(E)DI -> default register structure (see #2078)
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+		Note:	the handler will be called from 32-bit protected mode
+ ---descriptor management---
+	AX = 0200h allocate descriptors
+		CX = number of descriptors to allocate
+		Return: CF clear if successful
+			    AX = selector for first descriptor allocated
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0201h free a descriptor
+		BX = selector for descriptor
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0202h create alias descriptor
+		BX = selector for descriptor to be aliased
+		Return: CF clear if successful
+			    AX = alias descriptor
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0203h build alias to real-mode segment
+		BX = descriptor
+		CX = real-mode segment
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0204h set descriptor base
+		BX = descriptor
+		CX:DX = base address
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0205h set descriptor limit
+		BX = descriptor
+		CX = limit
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0206h set descriptor type/attribute
+		BX = descriptor
+		CL = type
+		CH = attribute
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0207h get descriptor base
+		BX = descriptor
+		Return: CF clear if successful
+			    CX:DX = base address
+			CF set on error
+			    AX = error code (see #2076)
+ ---linear memory functions---
+	AX = 0300h get size of largest free block of memory
+		Return: CF clear if successful
+			    BX:CX = size
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0301h allocate block of extended memory
+		BX:CX = required size
+		Return: CF clear if successful
+			    BX:CX = base address
+			    SI:DI = handle
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0302h free block of extended memory
+		SI:DI = handle
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0303h map linear memory
+		ES:(E)DI -> DDS (see #2079)
+		Return: CF clear if successful
+			    BX:CX = base address
+			    SI:DI = handle
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0304h unmap linear memory
+		SI:DI = handle
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0305h get page table entries
+		ESI = linear address
+		(E)CX = count
+		ES:(E)DI -> buffer for page table entries
+		Return: CF clear if successful
+			    ES:(E)DI buffer filled
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0306h set page table entries
+		EBX = linear memory handle
+		ESI = linear address
+		(E)CX = count
+		ES:(E)DI -> buffer containing page table entries
+		Return: CF clear if successful
+			CF set on error
+			    AX = error code (see #2076)
+	AX = 0307h get largest mappable block size
+		Return: CF clear if successful
+			    BX:CX = size
+			CF set on error
+			    AX = error code (see #2076)
+ ---miscellaneous---
+	AX = 0400h relocate segment to extended memory
+		ES:SI = base address
+		CX = limit
+		BL = type
+		BH = attribute
+		DX = selector or 0000h
+		Return: CF clear if successful
+			    AX = selector
+			    BX:CX = new base address
+			    SI:DI = handle
+			CF set on error
+			    AX = error code (see #2076)
+Note:	the beta DPMS specification, which is still supported by the Novell
+	  DOS 7.0 DPMS host, only supported functions 0100h-0103h, 0200h-0207h,
+	  0300h-0304h, and 0400h
+
+(Table 2076)
+Values for DPMS error code:
+ 8000h	general error
+ 8001h	unsupported function
+ 8002h	unable to switch to protected mode
+ 8004h	no default stack defined
+ 8005h	unknown client
+ 8010h	resource unavailable
+ 8011h	descriptor unavailable
+ 8012h	linear memory unavailable
+ 8013h	physical memory unavailable
+ 8021h	invalid value
+ 8022h	invalid selector
+ 8023h	invalid handle
+ 8025h	invalid linear address
+
+Format of DPMS callup/down register structure:
+Offset	Size	Description	(Table 2077)
+ 00h	DWORD	EDI
+ 04h	DWORD	ESI
+ 08h	DWORD	EBP
+ 0Ch  4 BYTEs	reserved (0) (ESP, may be used by DPMS server)
+ 10h	DWORD	EBX
+ 14h	DWORD	EDX
+ 18h	DWORD	ECX
+ 20h	DWORD	EAX
+ 24h	DWORD	EIP
+ 28h	WORD	CS
+ 2Ah  2 BYTEs	reserved (0)
+ 2Ch	DWORD	EFLAGS
+ 30h	DWORD	ESP
+ 34h	WORD	SS
+ 36h  2 BYTEs	reserved (0)
+ 38h	WORD	ES
+ 3Ah  2 BYTEs	reserved (0)
+ 3Ch	WORD	DS
+ 3Eh  2 BYTEs	reserved (0)
+ 40h	WORD	FS
+ 42h  2 BYTEs	reserved (0)
+ 44h	WORD	GS
+ 46h  2 BYTEs	reserved (0)
+
+Format of DPMS default register structure:
+Offset	Size	Description	(Table 2078)
+ 00h	DWORD	EIP
+ 04h	WORD	CS
+ 06h  2 BYTEs	reserved (0)
+ 08h	WORD	number of words to copy from stack to stack
+ 0Ah	BYTE	(call) 00h
+		(ret) nonzero if call could not be made
+ 0Bh	BYTE	reserved (may be used by some servers)
+ 0Ch	DWORD	ESP
+ 10h	WORD	SS
+ 12h  2 BYTEs	reserved (0)
+ 14h	WORD	ES
+ 16h  2 BYTEs	reserved (0)
+ 18h	WORD	DS
+ 1Ah  2 BYTEs	reserved (0)
+ 1Ch	WORD	FS
+ 1Eh  2 BYTEs	reserved (0)
+ 20h	WORD	GS
+ 22h  2 BYTEs	reserved (0)
+ 24h  9 BYTEs	API entry code (filled in by server)
+
+Format of DPMS lock DDS:
+Offset	Size	Description	(Table 2079)
+ 00h	DWORD	total size in bytes
+ 04h	DWORD	offset
+ 08h	WORD	segment or selector
+ 0Ah	WORD	reserved
+ 0Ch	WORD	maximum number of physical blocks structure has space for
+ 0Eh	WORD	number of physical blocks listed
+ 10h	DWORD	physical address of first block
+ 14h	DWORD	size in bytes of first block
+	...
+--------m-2F43E2-----------------------------
+INT 2F - DOS Protected Mode Services (DPMS) v1.0 - ENABLE/DISABLE DPMS
+	AX = 43E2h
+	BX = new state (0000h disable, 0001h enable)
+Return: AX = 0000h if supported
+Note:	this function should normally be called only by system software
+SeeAlso: AX=43E0h,AX=43E1h,AX=43E3h
+--------m-2F43E3BX0000-----------------------
+INT 2F - DOS Protected Mode Services (DPMS) v1.0 - DPMS STARTUP BROADCAST
+	AX = 43E3h
+	BX = 0000h
+	CX = 4450h ('DP')
+	DX = 4D53h ('MS')
+SeeAlso: AX=43E0h,AX=43E4h
+--------m-2F43E4BX0000-----------------------
+INT 2F - DOS Protected Mode Services (DPMS) v1.0 - DPMS EXIT BROADCAST
+	AX = 43E4h
+	BX = 0000h
+	CX = 4450h ('DP')
+	DX = 4D53h ('MS')
+SeeAlso: AX=43E0h,AX=43E3h

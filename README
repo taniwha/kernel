@@ -1,0 +1,105 @@
+Well here it is, a bootstrap loader for djgpp compiled programs that is PURE
+djgpp (no bored terrain or macro bucks in sight).  The boot strap loader is
+written with djasm and the actual kernel code (what the loader loads) is just
+the normal output of ld with a few gotchas explained later.  This means you
+can write your own operating system using gcc (gas, c, objective c, or c++,
+whatever suits you) and you don't have to worry about a certain compiler
+vendors nonsensical no nonsense licence agreement.
+
+This package is covered by the GNU GPL (see copying for details).
+
+file contents:
+
+README			this file, read it (may be `readme')
+boot.ld			linker script. Currently the same (almost) as used by most
+				djgpp programs.
+bootstrap.asm	the actual bootstrap loader.  Heavily commented, read for
+				details. (will probably be bootstra.asm)
+copyboot.c		program to copy the boot sector and boot code (named 'boot')
+				to a floppy disk (drive A, assumes 1.44M floppy)
+copying			GNU GPL
+makefile		gee, I wonder :)
+mv.bat			quick and dirty batch file to provid a mv -f command for make
+
+
+Most if not all the files listed below are required, any not listed below
+count as a bonus (docs, test files etc)
+
+README         ddo_main.idb   init.s         msd_fsys.c     serio.s
+__main.c       dispatch.c     int19.txt      msd_fsys.h     stacks.h
+__main.h       dma.h          inter.S        paging.S       stacks.s
+as386.sed      dma.s          irq.S          physmem.c      startup.s
+bc_fsys.c      dma_rti.txt    isa.h          physmem.h      textfont.h
+bc_fsys.h      dos.c          keybdio.h      qsir.asm       textfont.s
+boot.ld        dos.h          keybdio.s      rmcb.c         textmode.h
+bootstrap.asm  dos_disk.c     kgets.c        rmcb.h         textmode.s
+bpb.txt        dos_disk.h     kmalloc.c      s386.h         traps.c
+cmos.h         dos_memory.c   kmalloc.h      s386.s         traps.h
+cmos.s         fatsys.c       kprintf.c      screen.c       types.h
+copyboot.cc    fdc.c          ksbrk.c        screen.h       vm86.S
+copying        fdc.h          lfsys.c        segs.h         vm86.h
+cpu.h          hardide.c      lfsys.h        selectors.c    xmm.c
+dd.c           ide.c          main.c         selectors.h    xmm.h
+ddo.idb        ide.h          makefile       serial.h       xms_dpms.txt
+ddo.txt        ide.txt        modrmsib.txt   serio.h
+
+NOTE: the *.idb files require the `Interactive Disassembler' (SIMTEL,
+msdos/disasm/ida*.zip I think).
+
+Required pagages:
+C and C++ (C++ is used only for copyboot, not the kernel itself).
+binutils
+bison
+djasm from djgpp 2.02 (not released as of this writing) or my home-page
+  (http://www.tssc.co.nz/~bcurrie/).
+
+Usage notes:
+As things are currently set up, bootstrap.asm will work only from drive A
+which has to be a 1.44M floppy.  However, this restriction is not due to the
+assembly code, but copyboot.c, as there are fields in bootstrap.asm that allow
+you to specify what drive to boot from, its parameters (heads/cyls/secs) and
+the LOGICAL sector to start loading (and the number of sectors of course).
+This means that you only have to modify copyboot.c to get a general bootstrap
+loader (the parameters always start at offset 0x1f0 in bootstrap.bin).
+
+To create a boot disk (this can be done straight out of the box), first ensure
+an unneeded 1.44M floppy is in drive A (dos will not be able to use the disk
+afterwards), type make, type copyboot, then reboot your computer. A message
+stating how much base and extended memory you have will pop up (in 90x60
+text).  There will also be a red and yellow spinner in the top right corner
+and messages stating which key is pressed/released will appear on que.  The
+floppy motor will also have been turned off.  You will have to reset your
+computer (without the floppy) to return to your usual OS (this can be done
+with ctrl-alt-del).
+
+UPDATE: copyboot.c is now copyboot.cc and supports writing to a hard-drive.
+copyboot.exe defaults to writing to the floppy.
+
+usage:
+  copyboot [-b[ ]bootsector-image] [-f[ ]os-image] [-p[ ]partition-num] [-vv*]
+  -b specifies the bootsector-image. defaults to `bootstrap.bin'
+  -f specifies the os-image. defaults to `boot'
+  -p specifies the partition number. defaults to A:. use `copyboot -vv' to
+	 get a list of valid partition numbers (and find the number of the one
+	 you want-BE CAREFULL YOU COULD WIPE OUT YOUR SYSTEM
+  -v verbosity level. cumulative.  -vv dumps a list of partitions.
+  see the source for more details.
+
+The gothas:
+Unless you write code to cope with it, you CANNOT use any library code that
+makes ANY dos calls (this includes the bios, dpmi, mouse ...) such as printf,
+malloc etc (you should be able to use sprintf (I think).
+
+Your boot code will be entered with a 512 byte stack, so it is best if you can
+set up your own stack as soon as possible.
+
+ALL interrupts are disabled (including NMI, see bootstrap.asm for more info).
+
+If you have any questions, you can contract me by email:
+bill@taniwha.tssc.co.nz
+Use the source, Luke.
+
+Have fun
+Bill
+--
+Leave others their otherness.
