@@ -37,4 +37,4 @@ void (*get_rmcb_int(int intr))(RMCB_Regs*);
 
 #define RMCB_int_seg 0x60		/* segment of int nn hooks */
 
-#endif	__rmcb_h
+#endif//__rmcb_h

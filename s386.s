@@ -56,7 +56,7 @@ _ltr:	.globl _ltr
 
 		.align	2
 _jmptss:.globl _jmptss
-		ljmp	(%esp)
+		ljmp	*(%esp)
 		ret
 
 		.align	2

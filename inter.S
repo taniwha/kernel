@@ -152,9 +152,9 @@ set_int_vector:
 		cli
 		movzbl	%al,%ebx
 		movw	%dx,_idt+0(,%ebx,8)
-		rorl	$16,%dx
-		movl	%dx,_idt+6(,%ebx,8)
-		rorl	$16,%dx
+		rorl	$16,%edx
+		movw	%dx,_idt+6(,%ebx,8)
+		rorl	$16,%edx
 		movw	%cx,_idt+2(,%ebx,8)
 		popfl
 		popl	%ebx

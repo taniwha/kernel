@@ -225,7 +225,7 @@ comint:
 		ret
 1:		andl	$3,%eax					## incase 16550
 #		movzbl	%al,%eax
-		call	commFuncTable(,%eax,4)	## call the appropriate comm routine
+		call	*commFuncTable(,%eax,4)	## call the appropriate comm routine
 										## IIR==0 (%al==0) -> msr
 										## IIR==2 (%al==1) -> xmit
 										## IIR==4 (%al==2) -> rcv
@@ -921,7 +921,7 @@ sio_hookinterrupt:
 		andw	irqdmasks(,%ebx,2),%cx	# calculate value to disable this irq
 										# for cleanup
 		jnz		1f
-		btrw	%ebx,oldmasks
+		btrl	%ebx,oldmasks
 1:		outb	%al,$0x21
 		movb	%ah,%al
 		outb	%al,$0xa1
@@ -935,7 +935,7 @@ sio_unhookinterrupt:
 		inb		$0xa1,%al
 		movb	%al,%ah
 		inb		$0x21,%al
-		btsw	%ebx,oldmasks
+		btsl	%ebx,oldmasks
 		jnc		1f
 		orw		irqdmasks(,%ebx,2),%ax	# restore the PIC mask for this irq to what it
 										# was when this module was initialize
@@ -983,7 +983,7 @@ sio_init_port:
 		inb		%dx,%al
 		shrb	$1,%al
 		jc		3f
-		jmp		init_port_case(,%eax,4)
+		jmp		*init_port_case(,%eax,4)
 		.align	2
 init_port_case:
 		.long	ip_msr

@@ -33,4 +33,4 @@ typedef struct {
 	ulong next;			/* relative lba of next sector list if non-zero, else end */
 } BC_SectorList;
 
-#endif	__bc_fsys_h
+#endif//__bc_fsys_h

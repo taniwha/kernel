@@ -75,4 +75,4 @@ typedef struct {
 ushort dos_read_sectors(int drive, ulong sector, ulong count, void *buf);
 ushort dos_write_sectors(int drive, ulong sector, ulong count, void *buf);
 
-#endif __dos_disk_h
+#endif//__dos_disk_h

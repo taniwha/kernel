@@ -98,10 +98,10 @@ int sio_modemstat(SioPort *port)
 	return port->sio_modemstat;
 }
 
-#endif __sio_do_not_define_function_prototypes_or_externs
+#endif//__sio_do_not_define_function_prototypes_or_externs
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif __serio_h
+#endif//__serio_h

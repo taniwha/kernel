@@ -6,4 +6,4 @@ void AccessText(void);
 void SetFontHeight(int);
 int GetFontHeight();
 
-#endif	_textfont_h
+#endif//_textfont_h

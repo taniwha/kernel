@@ -8,4 +8,4 @@ void setDoubleScan(void);
 void setTextMode(int);
 void set90columns(void);
 
-#endif	_textmode.h
+#endif//_textmode.h

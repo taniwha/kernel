@@ -25,7 +25,7 @@
 #define NULL 0
 void *ksbrk(int delta);
 
-void *memcpy(void *dst, const void *src, ulong len)
+void *memcpy(void *dst, const void *src, size_t len)
 {
 	void *d=dst;
 	const void *s=src;
@@ -54,21 +54,19 @@ void *memcpy(void *dst, const void *src, ulong len)
 	return dst;
 }
 
-void *memset(void *dst, int val, ulong len)
+void *memset(void *dst, int val, size_t len)
 {
 	void *d=dst;
 	ulong v;
 	ulong l=len/4;
 
-	asm volatile ("
-		movb	%%dl,%%dh
-		movw	%%dx,%%ax
-		shll	$16,%%eax
-		movw	%%dx,%%ax
-		"
-		:"=a"(v)
-		:"d"(val)
-		:"%edx"
+	asm volatile (""
+		"movb	%%dl,%%dh;"
+		"movw	%%dx,%%ax;"
+		"shll	$16,%%eax;"
+		"movw	%%dx,%%ax;"
+		""
+		:"=a"(v),"+d"(val)
 	);
 	asm volatile ("cld;rep;stosl":"=D"(d),"=a"(v),"=c"(l):"0"(d),"1"(v),"2"(l));
 	if (len&2) {

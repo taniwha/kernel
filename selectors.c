@@ -30,21 +30,22 @@ static int _findFreeSel(ulong *map, ushort start, ushort len)
 		}
 		start+=32-i;
 	}
-	asm("
-		repz
-		scasl
-		setnz	%b0
-		subl	%k2,%k1
-		shrl	$2,%k1
-		decl	%k1
-		"
-		:"=r"(found),"=D"(ind)
-		:"m"(map),"1"(map+start/32),"c"((len/32)-(start/32)),"a"(0)
-		:"%ecx","cc"
+	i = (len/32)-(start/32);
+	asm(""
+		"repz;"
+		"scasl;"
+		"setnz	%b0;"
+		"subl	%k2,%k1;"
+		"shrl	$2,%k1;"
+		"decl	%k1;"
+		""
+		:"=r"(found),"=D"(ind),"+c"(i)
+		:"m"(map),"1"(map+start/32),"a"(0)
+		:"cc"
 	);
 	if (found) {
 		ushort sel;
-		asm ("bsfl %k1,%w0":"=g"(sel):"g"(map[ind]));
+		asm ("bsfl %k1,%k0":"=g"(sel):"g"(map[ind]));
 		return ind*32+sel;
 	} else if ((i=len%32)) {
 		ind=len/32;

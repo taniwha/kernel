@@ -34,7 +34,7 @@ int kprintf(const char *fmt,...)
                     break;
                     }
                 case 'c': {
-                    dec=va_arg(arglist,char);
+                    dec=va_arg(arglist,int);
                     kputc(dec);
                     break;
                     }
@@ -44,7 +44,7 @@ int kprintf(const char *fmt,...)
 						break;
 					}
 					x++;
-					hex=va_arg(arglist,unsigned short);
+					hex=va_arg(arglist,unsigned int);
 					kputsx(hex);
 					break;
 				case 'b':
@@ -53,7 +53,7 @@ int kprintf(const char *fmt,...)
 						break;
 					}
 					x++;
-					hex=va_arg(arglist,unsigned short);
+					hex=va_arg(arglist,unsigned int);
 					kputcx(hex);
 					break;
                 case 'x': {

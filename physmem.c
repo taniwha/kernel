@@ -44,13 +44,13 @@ static inline long _findFreePage(long start)
 		}
 		start+=32-i;
 	}
-	asm("
-		repz
-		scasl
-		setnz	%b0
-		subl	%k2,%k1
-		shrl	$2,%k1
-		"
+	asm(""
+		"repz;"
+		"scasl;"
+		"setnz	%b0;"
+		"subl	%k2,%k1;"
+		"shrl	$2,%k1;"
+		""
 		:"=r"(found),"=D"(ind)
 		:"i"(freePages),"1"(freePages),"c"((total_mem-start)/32),"a"(0)
 		:"%ecx","cc"

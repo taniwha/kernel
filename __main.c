@@ -138,11 +138,11 @@ static void convertDescriptor(Descriptor *des)
 	case dt_codeEOCA:
 	case dt_codeERC:
 	case dt_codeERCA:
-		asm("
-			movw %2,%%ax
-			xchgw %%ax,%0
-			movb %%al,%1
-			"
+		asm(""
+			"movw %2,%%ax;"
+			"xchgw %%ax,%0;"
+			"movb %%al,%1;"
+			""
 			:"=m"(*((char*)des+5)),
 			 "=m"(*((char*)des+7))
 			:"m"(*((char*)des+6))
@@ -155,13 +155,13 @@ static void convertDescriptor(Descriptor *des)
 	case dt_callGate32:
 	case dt_interruptGate32:
 	case dt_trapGate32:
-		asm("
-			movw %3,%%ax
-			xchgw %%ax,%0
-			xchgw %%ax,%1
-			xchgb %%al,%%ah
-			movw %%ax,%2
-			"
+		asm(""
+			"movw %3,%%ax;"
+			"xchgw %%ax,%0;"
+			"xchgw %%ax,%1;"
+			"xchgb %%al,%%ah;"
+			"movw %%ax,%2;"
+			""
 			:"=m"(*((char*)des+2)),
 			 "=m"(*((char*)des+6)),
 			 "=m"(*((char*)des+4))
@@ -182,16 +182,16 @@ void __main(void)
 		convertDescriptor(&idt[i]);
 	}
 	set_gdt(&gdt[0].pseudo);
-	asm("
-		movw	%w0,%%ds
-		movw	%w0,%%es
-		movw	%w0,%%fs
-		movw	%w0,%%gs
-		movw	%w0,%%ss
-		pushl	%1
-		pushl	$1f
-		lret
-	1:	"
+	asm(""
+		"movw	%w0,%%ds;"
+		"movw	%w0,%%es;"
+		"movw	%w0,%%fs;"
+		"movw	%w0,%%gs;"
+		"movw	%w0,%%ss;"
+		"pushl	%1;"
+		"pushl	$1f;"
+		"lret;"
+"	1:	"
 		:
 		:"r"(0x10),"i"(0x08)
 	);

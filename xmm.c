@@ -324,18 +324,20 @@ int moveExtendedMemory(ulong len, ushort srcH, ulong srcO, ushort dstH, ulong ds
 	d=(dst->base<<XMS_shift)+dstO;
 	s=(src->base<<XMS_shift)+srcO;
 	if (s>d) {
-		asm volatile ("cld;rep;movsl":"=S"(s),"=D"(d):"0"(s),"1"(d),"c"(len/4):"%ecx");
+		ulong l = len / 4;
+		asm volatile ("cld;rep;movsl":"+S"(s),"+D"(d),"+c"(l));
 		if (len&2) {
-			asm volatile ("movsw":"=S"(s),"=D"(d):"0"(s),"1"(d));
+			asm volatile ("movsw":"+S"(s),"+D"(d));
 		}
 	} else if (s<d) {
+		ulong l = len / 4;
 		s+=len;
 		d+=len;
 		asm volatile ("std");
 		if (len&2) {
-			asm volatile ("movsw":"=S"(s),"=D"(d):"0"(s),"1"(d));
+			asm volatile ("movsw":"+S"(s),"+D"(d));
 		}
-		asm volatile ("rep;movsl;cld":"=S"(s),"=D"(d):"0"(s),"1"(d),"c"(len/4):"%ecx");
+		asm volatile ("rep;movsl;cld":"+S"(s),"+D"(d),"+c"(l));
 	}
 	return 1;
 }

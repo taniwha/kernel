@@ -410,4 +410,3 @@ void disable_irq(uchar irq)
 		_outb(ICU1+1,_inb(ICU1+1)|(0x01<<irq));
 	}
 }
-																				

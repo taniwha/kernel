@@ -243,12 +243,12 @@ static __inline__
 unsigned long get_segment_base(Descriptor *des)
 {
 	unsigned long base;
-	asm ("
-		movl	%1,%0	# bits 0-23 of base
-		shll	$8,%0
-		movb	%2,%b0	# bits 24-31 of base
-		rorl	$8,%0	# rotate bits into position
-		"
+	asm (""
+		"movl	%1,%0	# bits 0-23 of base;"
+		"shll	$8,%0;"
+		"movb	%2,%b0	# bits 24-31 of base;"
+		"rorl	$8,%0	# rotate bits into position;"
+		""
 		:"=&q"(base)
 		:"m"(*((char*)des+2)),
 		 "m"(*((char*)des+7))

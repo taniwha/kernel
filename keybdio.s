@@ -120,7 +120,7 @@ k_isr:
 		call	_k_disable
 		call	_k_getScan
 		movzbl	%al,%eax
-		call	scan_table(,%eax,4)
+		call	*scan_table(,%eax,4)
 		call	_k_enable
 		ret
 
@@ -158,7 +158,7 @@ num_lock_d:
 		movl	pause,%eax
 		orl		%eax,%eax
 		jz		1f
-		call	%eax
+		call	*%eax
 1:		jmp		isr_exit
 2:		testw	$S_numlock,shifts
 		jnz		isr_exit
@@ -422,7 +422,7 @@ pad_key:
 rb:		movl	cad,%eax
 		orl		%eax,%eax
 		jz		isr_exit
-		call	%eax
+		call	*%eax
 		jmp		isr_exit
 7:		movb	alt_keys(%eax),%ah
 		xorb	%al,%al
