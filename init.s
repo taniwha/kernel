@@ -150,8 +150,8 @@ setupPageTable:
 
 setPageTableEntries:
 		jecxz	2f
-		stosl
-1:		addl	$0x1000,%eax
+1:		stosl
+		addl	$0x1000,%eax
 		loop	1b
 2:		ret
 
